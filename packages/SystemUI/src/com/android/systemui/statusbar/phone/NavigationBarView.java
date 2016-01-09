@@ -83,6 +83,14 @@ public class NavigationBarView extends LinearLayout {
 
     private boolean mIsHandlerCallbackActive = false;
 
+    private OnLongClickListener mNotificationDrawerListener = new View.OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View v) {
+            ((KeyButtonView) v).sendEvent(KeyEvent.KEYCODE_NOTIFICATION, KeyEvent.FLAG_LONG_PRESS);
+            return true;
+        }
+    };
+
     private OnLongClickListener mPowerListener = new View.OnLongClickListener() {
         @Override
         public boolean onLongClick(View v) {
@@ -519,6 +527,7 @@ public class NavigationBarView extends LinearLayout {
         setButtonWithTagVisibility(NavbarEditor.NAVBAR_BACK, !disableBack);
         setButtonWithTagVisibility(NavbarEditor.NAVBAR_HOME, !disableHome);
         setButtonWithTagVisibility(NavbarEditor.NAVBAR_RECENT, !disableRecent);
+        setButtonWithTagVisibility(NavbarEditor.NAVBAR_NOTIFICATION, !disableRecent);
         setButtonWithTagVisibility(NavbarEditor.NAVBAR_POWER, !disableRecent);
         setButtonWithTagVisibility(NavbarEditor.NAVBAR_SEARCH, !disableSearch);
     }
@@ -873,6 +882,11 @@ public class NavigationBarView extends LinearLayout {
             homeView.setOnTouchListener(mHomeSearchActionListener);
             homeView.setLongClickable(true);
             homeView.setOnLongClickListener(mLongPressHomeListener);
+        }
+        View ndrawerView = mCurrentView.findViewWithTag(NavbarEditor.NAVBAR_NOTIFICATION);
+        if (ndrawerView != null) {
+            ndrawerView.setLongClickable(true);
+            ndrawerView.setOnLongClickListener(mNotificationDrawerListener);
         }
         View powerView = mCurrentView.findViewWithTag(NavbarEditor.NAVBAR_POWER);
         if (powerView != null) {
