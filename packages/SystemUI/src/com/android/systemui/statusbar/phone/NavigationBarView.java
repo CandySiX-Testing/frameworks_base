@@ -30,6 +30,8 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuff.Mode;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -341,7 +343,7 @@ public class NavigationBarView extends LinearLayout {
     @Override
     public void setLayoutDirection(int layoutDirection) {
         getIcons(getContext().getResources());
-        updateSettings();
+        updateSettings(true);
 
         super.setLayoutDirection(layoutDirection);
     }
@@ -425,7 +427,11 @@ public class NavigationBarView extends LinearLayout {
     }
 
     public void recreateNavigationBar() {
-        updateSettings();
+        updateSettings(true);
+    }
+
+    public void updateNavigationBarSettings() {
+        updateSettings(false);
     }
 
     private KeyButtonView generateKey(boolean landscape, String clickAction,
@@ -788,7 +794,7 @@ public class NavigationBarView extends LinearLayout {
         mRotatedViews[Surface.ROTATION_270] = mRotatedViews[Surface.ROTATION_90];
 
         mCurrentView = mRotatedViews[Surface.ROTATION_0];
-        updateSettings();
+        updateSettings(true);
 
         if (getImeSwitchButton() != null)
             getImeSwitchButton().setOnClickListener(mImeSwitcherClickListener);
@@ -832,7 +838,6 @@ public class NavigationBarView extends LinearLayout {
 
         updateTaskSwitchHelper();
 
-        setNavigationIconHints(mNavigationIconHints, true);
     }
 
     private void updateTaskSwitchHelper() {
@@ -1003,7 +1008,7 @@ public class NavigationBarView extends LinearLayout {
         }
     }
 
-    private void updateSettings() {
+    private void updateSettings(boolean recreate) {
         ContentResolver resolver = mContext.getContentResolver();
 
         mNavBarButtonColor = Settings.System.getIntForUser(resolver,
@@ -1027,9 +1032,57 @@ public class NavigationBarView extends LinearLayout {
                 Settings.System.MENU_VISIBILITY, MENU_VISIBILITY_SYSTEM,
                 UserHandle.USER_CURRENT);
 
-        // construct the navigationbar
-        makeBar();
+        setNavigationIconHints(mNavigationIconHints, true);
 
+        // update back button colors
+        Drawable backIcon, backIconLand;
+        ActionConfig actionConfig;
+        String backIconUri = ActionConstants.ICON_EMPTY;
+        for (int j = 0; j < mButtonsConfig.size(); j++) {
+            actionConfig = mButtonsConfig.get(j);
+            final String action = actionConfig.getClickAction();
+            if (action.equals(ActionConstants.ACTION_BACK)) {
+                backIconUri = actionConfig.getIcon();
+            }
+        }
+
+        if (backIconUri.equals(ActionConstants.ICON_EMPTY)) {
+            backIcon = mContext.getResources().getDrawable(
+                    R.drawable.ic_sysbar_back);
+            backIconLand = backIcon;
+        } else {
+            backIcon = ActionHelper.getActionIconImage(mContext,
+                    ActionConstants.ACTION_BACK, backIconUri);
+            backIconLand = backIcon;
+        }
+        boolean shouldColor = true;
+        if (backIconUri != null && !backIconUri.equals(ActionConstants.ICON_EMPTY)
+                && !backIconUri.startsWith(ActionConstants.SYSTEM_ICON_IDENTIFIER)
+                && mNavBarButtonColorMode == 1) {
+            shouldColor = false;
+        }
+
+        updateBackButtonDrawables(backIcon, backIconLand, shouldColor);
+
+        // construct the navigationbar
+        if (recreate) {
+            makeBar();
+        }
+
+    }
+
+    private void updateBackButtonDrawables(
+            Drawable iconBack, Drawable iconBackLand, boolean color) {
+        iconBack.mutate();
+        iconBackLand.mutate();
+        iconBack.setTintMode(PorterDuff.Mode.MULTIPLY);
+        iconBackLand.setTintMode(PorterDuff.Mode.MULTIPLY);
+        if (color && mNavBarButtonColorMode != 3) {
+            iconBack.setTint(mNavBarButtonColor);
+            iconBackLand.setTint(mNavBarButtonColor);
+        }
+        mBackIcon = iconBack;
+        mBackLandIcon = iconBackLand;
     }
 
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
